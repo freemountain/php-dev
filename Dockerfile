@@ -8,4 +8,4 @@ EXPOSE 443
 
 VOLUME ["/var/www"]
 
-CMD ["/usr/sbin/apache2ctl", "-D", "FOREGROUND"]
+#CMD ["/usr/sbin/apache2ctl", "-D", "FOREGROUND"]
