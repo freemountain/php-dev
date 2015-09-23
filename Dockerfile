@@ -1,35 +1,43 @@
-FROM ubuntu:latest
+FROM debian:jessie
 
-MAINTAINER Dan Pupius <dan@pupi.us>
+ENV RELEASE_DATE 2015-07-03
+ENV DEBIAN_FRONTEND noninteractive
+ENV APACHE_HTTPD "exec /usr/sbin/apache2"
+ENV TERM xterm
+ENV APACHE_LOG_DIR "/var/log/apache2/"
 
-RUN apt-get update
-RUN apt-get -y upgrade
+RUN apt-get -qq update
+#RUN apt-get -y install
+RUN apt-get -qq install \
+    nano apache2 php5 ssmtp libapache2-mod-php5 php5-mysql php5-json php5-curl php5-gd \
+    mysql-client mysql-server wget \
+    && \
+  apt-get clean
 
-# Install apache, PHP, and supplimentary programs. curl and lynx-cur are for debugging the container.
-RUN DEBIAN_FRONTEND=noninteractive apt-get -y install apache2 libapache2-mod-php5 php5-mysql php5-gd php-pear php-apc php5-curl curl lynx-cur
-
-# Enable apache mods.
-RUN a2enmod php5
+RUN rm /etc/apache2/sites-enabled/000-default.conf
+ADD 000-app.conf /etc/apache2/sites-available/000-app.conf
+RUN ln -s /etc/apache2/sites-available/000-app.conf /etc/apache2/sites-enabled/000-app.conf
+ADD 001-adminer.conf /etc/apache2/sites-available/001-adminer.conf
+RUN ln -s /etc/apache2/sites-available/001-adminer.conf /etc/apache2/sites-enabled/001-adminer.conf
 RUN a2enmod rewrite
 
-# Update the PHP.ini file, enable <? ?> tags and quieten logging.
-RUN sed -i "s/short_open_tag = Off/short_open_tag = On/" /etc/php5/apache2/php.ini
-RUN sed -i "s/error_reporting = .*$/error_reporting = E_ERROR | E_WARNING | E_PARSE/" /etc/php5/apache2/php.ini
+#add start script
+ADD ./start.sh /usr/local/bin/start.sh
+RUN chmod +x /usr/local/bin/start.sh
 
-# Manually set up the apache environment variables
-ENV APACHE_RUN_USER www-data
-ENV APACHE_RUN_GROUP www-data
-ENV APACHE_LOG_DIR /var/log/apache2
-ENV APACHE_LOCK_DIR /var/lock/apache2
-ENV APACHE_PID_FILE /var/run/apache2.pid
+#create mysql user with DATABASE
+ADD create_user.sql /create_user.sql
+#RUN /usr/sbin/mysqld && mysql -u root < /create_user.sql
+
+#install adminer
+RUN mkdir /usr/share/adminer
+RUN wget "http://www.adminer.org/latest.php" -O /usr/share/adminer/index.php
+RUN echo "Listen 88" >> /etc/apache2/ports.conf
+
+VOLUME ["/var/www", "/var/lib/mysql"]
 
 EXPOSE 80
+EXPOSE 88
+EXPOSE 3306
 
-# Copy site into place.
-# ADD www /var/www/site
-VOLUME /var/www
-# Update the default apache site with the config we created.
-ADD apache-config.conf /etc/apache2/sites-enabled/000-default.conf
-
-# By default, simply start apache.
-CMD /usr/sbin/apache2ctl -D FOREGROUND
+CMD ["/usr/local/bin/start.sh"]

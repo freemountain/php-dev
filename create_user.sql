@@ -1,0 +1,2 @@
+CREATE DATABASE foo;
+GRANT ALL PRIVILEGES ON foo.* To 'foo'@'%' IDENTIFIED BY 'bar';
