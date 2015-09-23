@@ -10,7 +10,7 @@ RUN apt-get -qq update
 #RUN apt-get -y install
 RUN apt-get -qq install \
     nano apache2 php5 ssmtp libapache2-mod-php5 php5-mysql php5-json php5-curl php5-gd \
-    mysql-client mysql-server wget \
+    mysql-client mysql-server wget git\
     && \
   apt-get clean
 
